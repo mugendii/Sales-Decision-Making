@@ -1,0 +1,48 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+# check the working directory
+getwd()
+
+df <- read.csv("game_sales.csv", header = TRUE,sep = ",")
+df
+```
+```{r}
+#Checking for null values
+colSums(is.na(df))
+```
+```{r}
+summary(df)
+```
+##Data MAnipilation
+We will try to find insights based on the data
+###Genre Analysis
+```{r}
+#get the value counts for the genre
+table(df$genre)
+
+```
+```{r}
+df2 <- df # Duplicate the data
+df2$genre_mean <- ave(df$sales,df$genre) #Get the mean sales of the genres and save in a new column
+df2
+```
+```{r}
+library(ggplot2)
+ggplot(df2, aes(x = genre, y = genre_mean)) +
+  geom_bar(stat = "identity", fill = "blue", alpha = 0.7) +
+  labs(title = "Mean Sales by Genre",
+       x = NULL,
+       y = "Average Sales") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())+
+  facet_wrap(~ genre, scales = "free_x", labeller = label_both)
+```
+
+
