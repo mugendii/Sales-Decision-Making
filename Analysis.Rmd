@@ -1,11 +1,18 @@
 ---
-title: "R Notebook"
+title: "Video Games Analysis"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+You have been hired by Donkey Games, a games company located in Dundee, Scotland. They are planning their next release and want to use data to decide what kind of game to make. They have a dataset that contains historical information on the top selling games of all time.
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+Donkey want to understand what types of games sell a lot of copies. In particular, they are looking for analysis that helps them decide what kind of games their company should make in the future
+. 
+```{r}
+
+library(dplyr)
+
+library(ggplot2)
+```
 
 ```{r}
 # check the working directory
@@ -25,10 +32,28 @@ summary(df)
 We will try to find insights based on the data
 ###Genre Analysis
 ```{r}
+table(df$year_of_release)
+```
+
+```{r}
 #get the value counts for the genre
 table(df$genre)
 
 ```
+```{r}
+genre_counts <- table(df$genre)
+genre_data <- as.data.frame(genre_counts)
+colnames(genre_data) <- c("Genre", "Count")
+# Create the pie chart
+pie_chart <- ggplot(genre_data, aes(x = "", y = Count, fill = Genre)) +
+  geom_bar(stat = "identity") +
+  coord_polar("y") +  # Convert to a pie chart
+  theme_void()  # Remove unnecessary elements
+pie_chart
+
+```
+
+
 ```{r}
 df2 <- df # Duplicate the data
 df2$genre_mean <- ave(df$sales,df$genre) #Get the mean sales of the genres and save in a new column
@@ -44,5 +69,169 @@ ggplot(df2, aes(x = genre, y = genre_mean)) +
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())+
   facet_wrap(~ genre, scales = "free_x", labeller = label_both)
 ```
+```{r}
+ggplot(
+  head(df, 10),
+  aes(
+    x=sales,
+    y=reorder(name, sales),
+    fill=year_of_release
+  )
+) +
+  geom_bar(stat="identity") +
+  labs(
+    y="Name",
+    x=" Sales"
+  )
+```
+##publisher analysis
 
+```{r}
+genre_counts <- table(df$publisher)
+genre_data <- as.data.frame(genre_counts)
+colnames(genre_data) <- c("Genre", "Count")
+# Create the pie chart
+pie_chart <- ggplot(genre_data, aes(x = "", y = Count, fill = Genre)) +
+  geom_bar(stat = "identity") +
+  coord_polar("y") +  # Convert to a pie chart
+  theme_void()  # Remove unnecessary elements
+pie_chart
+```
+
+```{r}
+publisher_sales <- aggregate(
+  sales~publisher+year_of_release,
+  df,
+  sum
+)
+
+```
+
+```{r}
+publisher_sales_clean <- aggregate(
+  sales~publisher,
+  df,
+  sum
+)
+publisher_sales_clean <- publisher_sales_clean[
+  order(publisher_sales_clean$sales, decreasing=T),
+]
+ggplot(
+  publisher_sales,
+  aes(
+    x=sales,
+    y=reorder(publisher, sales),
+    fill=year_of_release
+  )
+) +
+  geom_bar(stat="identity") +
+  scale_fill_continuous(low="red", high="blue") +
+  scale_y_discrete(limits=head(publisher_sales_clean, 10)$publisher) +
+  labs(
+    y="Platform",
+    x="Sales"
+  )
+
+```
+##Year Analysis
+```{r}
+# Scatter plot of Global Sales vs. Critic Score
+ggplot(df, aes(x = year_of_release, y = sales)) +
+  geom_point() +
+  labs(title = " Sales vs. year",
+       x = "year",
+       y = "Sales ")
+```
+
+
+
+```{r}
+ggplot(
+  df,
+  aes(
+    x=year_of_release,
+  )
+) +
+  geom_histogram(
+    binwidth=1,
+    fill="green"
+  ) +
+  theme_minimal()
+
+```
+##platform analysis
+```{r}
+bar_chart <- ggplot(df, aes(x = platform, fill = "Red")) +
+  geom_bar() +
+  scale_fill_manual(values = "red") +  # Set fill color to blue
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+bar_chart
+```
+```{r}
+# Scatter plot of Global Sales vs. Critic Score
+ggplot(df, aes(x = critic_score, y = sales)) +
+  geom_point() +
+  labs(title = " Sales vs. Critic Score",
+       x = "Critic Score",
+       y = "Sales ")
+```
+```{r}
+# Scatter plot of Sales vs.user Score
+ggplot(df, aes(x = user_score, y = sales)) +
+  geom_point() +
+  labs(title = "Sales vs. user Score",
+       x = "User Score",
+       y = "Sales (in millions)")
+```
+```{r}
+# Extract correlation coefficients for Global Sales and User Score
+cor_sales_user <- correlation_matrix["sales", "user_score"]
+
+# Print correlation coefficients
+cat("Correlation between Sales and critic score:", cor_sales_user, "\n")
+```
+```{r}
+# Extract correlation coefficients for Sales and Critic Score
+cor_sales_critic <- correlation_matrix["sales", "critic_score"]
+
+cat("Correlation between Sales and User Score:", cor_sales_critic, "\n")
+```
+
+
+
+```{r}
+# Calculate correlation matrix
+correlation_matrix <- cor(df[c("sales", "critic_score", "user_score")])
+
+# Print correlation matrix
+print(correlation_matrix)
+```
+
+
+
+```{r}
+
+# Create a heatmap to visualize the correlation
+ggplot(data = melt(correlation_matrix), aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), vjust = 1) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1, 1), space = "Lab", name="Correlation") +
+  theme_minimal() +
+  labs(title = "Correlation Heatmap",
+       x = "Variables",
+       y = "Variables")
+
+
+```
+```{r}
+#Regression analysis
+# Fit a simple linear regression model
+regression_model <- lm(sales ~ critic_score, data = df)
+
+specific_critic_score <- 80
+
+new_data <- data.frame(critic_score = specific_critic_score)
+predicted_sales <- predict(regression_model, newdata = new_data)
+cat("Predicted Sales for Critic Score", specific_critic_score, ":", predicted_sales, "\n")
+```
 
